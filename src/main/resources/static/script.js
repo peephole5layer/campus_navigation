@@ -1,15 +1,12 @@
 const API_BASE = "http://localhost:8080/api/navigation";
 let map;
 let routeLayer;
-let routingControl;
 
 function initMap() {
-  map = L.map('map').setView([28.61, 77.20], 17);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+  map = L.map("map").setView([28.61, 77.20], 17);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
   }).addTo(map);
-
   routeLayer = L.layerGroup().addTo(map);
 }
 
@@ -22,58 +19,46 @@ async function loadLocations() {
     const dest = document.getElementById("destination");
 
     locations.forEach(loc => {
-      let opt1 = new Option(loc.name, JSON.stringify({ lat: loc.latitude, lng: loc.longitude }));
-      let opt2 = new Option(loc.name, JSON.stringify({ lat: loc.latitude, lng: loc.longitude }));
+      const opt1 = new Option(loc.name, loc.id);
+      const opt2 = new Option(loc.name, loc.id);
       source.add(opt1);
       dest.add(opt2);
     });
   } catch (err) {
-    console.error("Error loading locations:", err);
+    console.error("Failed to load locations:", err);
   }
 }
 
-function calcDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3;
-  const φ1 = lat1 * Math.PI/180;
-  const φ2 = lat2 * Math.PI/180;
-  const Δφ = (lat2-lat1) * Math.PI/180;
-  const Δλ = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return (R * c / 1000).toFixed(2);
-}
-
 async function getRoute() {
-  const sourceVal = document.getElementById("source").value;
-  const destVal = document.getElementById("destination").value;
+  const sourceId = document.getElementById("source").value;
+  const destId = document.getElementById("destination").value;
 
-  if (!sourceVal || !destVal) return;
-
-  const source = JSON.parse(sourceVal);
-  const dest = JSON.parse(destVal);
+  if (!sourceId || !destId) {
+    alert("Please select both source and destination.");
+    return;
+  }
 
   try {
-    if (routingControl) {
-      map.removeControl(routingControl);
+    const res = await fetch(`${API_BASE}/route?sourceId=${sourceId}&destinationId=${destId}`);
+    const routeData = await res.json();
+
+    if (!routeData.length) {
+      alert("No route found!");
+      return;
     }
 
-    routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(source.lat, source.lng),
-        L.latLng(dest.lat, dest.lng)
-      ],
-      routeWhileDragging: false,
-      draggableWaypoints: false,
-      addWaypoints: false,
-      show: false,
-      createMarker: function(i, wp) {
-        return L.marker(wp.latLng).bindPopup(i === 0 ? "Start" : "End");
-      }
-    }).addTo(map);
+    routeLayer.clearLayers();
 
-    document.getElementById("map").style.display = "block";
-    setTimeout(() => map.invalidateSize(), 200);
+    const latlngs = routeData.map(loc => [loc.latitude, loc.longitude]);
+    L.polyline(latlngs, { color: "blue" }).addTo(routeLayer);
 
+    routeData.forEach(loc => {
+      L.marker([loc.latitude, loc.longitude])
+        .addTo(routeLayer)
+        .bindPopup(loc.name);
+    });
+
+    map.fitBounds(L.latLngBounds(latlngs));
   } catch (err) {
     console.error("Error fetching route:", err);
   }
