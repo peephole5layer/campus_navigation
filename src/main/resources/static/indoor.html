@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Indoor Navigation</title>
+    <link rel="stylesheet" href="indoor_style.css" />
+</head>
+<body>
+<div class="navigation-header">
+    <h2>🏫 Indoor Navigation</h2>
+    <label for="source">Source:</label>
+    <select id="source"></select>
+
+    <label for="destination">Destination:</label>
+    <select id="destination"></select>
+
+    <button onclick="showPath()">Show Path</button>
+</div>
+
+<div class="floor-container" id="floors"></div>
+
+<script src="indoor_script.js"></script>
+</body>
+</html>
